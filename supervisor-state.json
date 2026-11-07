@@ -1,0 +1,14 @@
+{
+  "date": "2026-11-07",
+  "alerted": {
+    "source:broker": {
+      "at": "2026-11-07T20:33:15.680Z",
+      "level": "warn",
+      "title": "Broker status unknown",
+      "detail": "Couldn't read Webull positions/orders: Error: missing env var WEBULL_BASE_URL"
+    }
+  },
+  "orderFirstSeen": {},
+  "reportWritten": true,
+  "lastRun": "2026-11-07T20:33:15.680Z"
+}
