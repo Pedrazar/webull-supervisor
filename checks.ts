@@ -140,7 +140,7 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     if (leg?.option_type === "PUT" && parseFloat(p.quantity) < 0 && world.nvdaPrice && Number.isFinite(strike)) {
       const cushion = world.nvdaPrice - strike;
       if (cushion < WHEEL_CUSHION_ALERT_PCT * world.nvdaPrice) {
-        f.push({ key: `wheel-cushion:${strike}`, level: "warn", agent: "wheel", title: "NVDA near the short put strike", detail: `NVDA ${world.nvdaPrice.toFixed(2)} vs the ${strike} put: cushion $${cushion.toFixed(2)}. Assignment would mean ${Math.abs(parseFloat(p.quantity)) * 100} shares (~$${Math.round(strike * Math.abs(parseFloat(p.quantity)) * 100).toLocaleString("en-US")}).` });
+        f.push({ key: `wheel-cushion:${strike}`, level: "warn", agent: "wheel", title: "NVDA near the short put strike", detail: `NVDA ${world.nvdaPrice.toFixed(2)} vs the ${strike} put: ${cushion < 0 ? `$${(-cushion).toFixed(2)} below the strike, the put is in the money` : `cushion $${cushion.toFixed(2)}`}. Assignment would mean ${Math.abs(parseFloat(p.quantity)) * 100} shares (~$${Math.round(strike * Math.abs(parseFloat(p.quantity)) * 100).toLocaleString("en-US")}).` });
       }
     }
     const u = optionUnrealized(p, world);
