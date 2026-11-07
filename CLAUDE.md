@@ -27,11 +27,11 @@ https://claude.ai/artifact/KmozfEpzmnQmT15VsfLNdn
 | SPX 0DTE | $1,000 realized + open position marked to market |
 | SPY 0DTE paper | $200 realized + open position marked to market |
 | Wheel | none; alert on unrealized loss over $1,500 or NVDA within 3% of the short put |
-| Paper account combined | $1,000 |
+| Paper account combined | $1,350 (the three limits added up) |
 
-Because SPX's own limit equals the combined cap, one full SPX loss day
-trips the combined cap. Against the real 2026-11-06 logs (SPX -$910,
-SPY -$153) the combined alert would have fired that day.
+Against the real 2026-11-06 logs (SPX -$910, SPY -$153, total -$1,063)
+the combined alert would NOT have fired; it fires only when the agents
+together lose more than $1,350 in a day.
 
 Known gap: webull-agent commits `trades.jsonl` only at the end of its
 session, so its realized P&L reaches the supervisor after the close. Its

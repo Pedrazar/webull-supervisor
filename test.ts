@@ -71,7 +71,7 @@ function test(name: string, fn: () => void) {
 
 const keys = (w: World, seen: Record<string, string> = {}) => runChecks(w, seen).map((f) => f.key);
 
-test("real Nov 6 P&L: SPX -910, SPY -153, combined limit hit", () => {
+test("real Nov 6 P&L: SPX -910, SPY -153, total -1063 stays inside the $1,350 combined cap", () => {
   const w = world(et("2026-11-06", "14:00"), { positions: [wheelPut] });
   const rows = riskRows(w);
   assert.equal(rows.find((r) => r.agent === "spx-0dte")!.realized, -910);
@@ -79,7 +79,11 @@ test("real Nov 6 P&L: SPX -910, SPY -153, combined limit hit", () => {
   const k = keys(w);
   assert.ok(!k.includes("limit:spx-0dte"), "SPX -910 is inside its $1,000 limit");
   assert.ok(!k.includes("limit:spy-0dte"), "SPY -153 is inside its $200 limit");
-  assert.ok(k.includes("limit:combined"), `combined should be past -$1,000, got ${k}`);
+  assert.ok(!k.includes("limit:combined"), "-$1,063 is inside the $1,350 combined cap");
+  // Add a $300 open SPY loss on top and the combined cap trips.
+  const spy: Position = { symbol: "SPY", instrument_type: "OPTION", quantity: "1", legs: [{ symbol: "SPY", option_type: "CALL", option_expire_date: "2026-11-06", option_exercise_price: "738", cost: "4.00" }] };
+  const worse = world(et("2026-11-06", "14:00"), { positions: [wheelPut, spy], snapshots: [{ symbol: "SPY261106C00738000", bid: "0.95", ask: "1.05" }] });
+  assert.ok(keys(worse).includes("limit:combined"));
 });
 
 test("session agent that never started is critical after its start-by time", () => {
@@ -158,6 +162,7 @@ test("report renders with real Nov 6 numbers", () => {
   const r = buildReport(w, state);
   assert.ok(r.markdown.includes("SPX 0DTE calls | -$910.00"));
   assert.ok(r.markdown.includes("91% of $1000"));
+  assert.ok(r.markdown.includes("79% of the $1350 combined limit"));
   fs.mkdirSync("fixtures/out", { recursive: true });
   fs.writeFileSync("fixtures/out/sample-report.md", r.markdown);
   console.log(`   headline: ${r.headline}`);

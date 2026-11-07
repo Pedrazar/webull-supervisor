@@ -85,7 +85,7 @@ export const AGENTS: AgentConfig[] = [
 ];
 
 /** Combined daily cap across the paper account, realized + open 0DTE marked to market. */
-export const COMBINED_DAILY_LOSS_LIMIT = 1000;
+export const COMBINED_DAILY_LOSS_LIMIT = 1350;
 
 /** Unrealized loss on the wheel's open position that triggers an alert. */
 export const WHEEL_UNREALIZED_ALERT_USD = 1500;
