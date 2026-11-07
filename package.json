@@ -1,0 +1,22 @@
+{
+  "name": "webull-supervisor",
+  "version": "1.0.0",
+  "description": "Read-only supervisor for the four Webull paper-trading agents: health checks, daily loss limits, phone alerts, daily report.",
+  "main": "main.ts",
+  "private": true,
+  "scripts": {
+    "check": "tsx main.ts",
+    "dry-run": "tsx main.ts --dry-run",
+    "report": "tsx main.ts --report",
+    "test": "tsx test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@types/node": "^26.2.0",
+    "dotenv": "^17.4.2",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2"
+  }
+}

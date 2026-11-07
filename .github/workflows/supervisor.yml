@@ -1,0 +1,74 @@
+name: Supervisor
+
+# One short pass (~1 min) per dispatch: health checks, daily-limit tracking,
+# phone alerts, and once after 4:30pm ET the combined daily report.
+#
+# Primary trigger: a cron-job.org job POSTing to this workflow's dispatches
+# endpoint every 5 minutes, 6:25am-1:55pm America/Los_Angeles, Mon-Fri
+# (same setup as the agents; GitHub's own scheduler has been measured
+# firing hours late for these repos). The schedule below is only a sparse
+# backup so a dead cron-job.org entry still gets noticed.
+#
+# Phase 1 is READ-ONLY: it never places, cancels or changes an order and
+# never touches the agents' repos.
+on:
+  workflow_dispatch:
+    inputs:
+      report:
+        description: "Write the daily report now, whatever the time"
+        type: boolean
+        default: false
+  schedule:
+    - cron: "*/30 13-22 * * 1-5"
+
+concurrency:
+  group: supervisor
+  cancel-in-progress: false
+
+permissions:
+  contents: write # commit supervisor-state.json and reports/
+  actions: read # read the agents' workflow runs
+
+jobs:
+  pass:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - run: npm ci
+
+      - name: Supervisor pass
+        env:
+          WEBULL_APP_KEY: ${{ secrets.WEBULL_APP_KEY }}
+          WEBULL_APP_SECRET: ${{ secrets.WEBULL_APP_SECRET }}
+          WEBULL_BASE_URL: ${{ secrets.WEBULL_BASE_URL }}
+          WEBULL_SANDBOX_ACCOUNT_ID: ${{ secrets.WEBULL_SANDBOX_ACCOUNT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tsx main.ts ${{ inputs.report && '--report' || '' }}
+
+      - name: Commit state + report
+        if: always()
+        run: |
+          git config user.name "webull-supervisor"
+          git config user.email "actions@users.noreply.github.com"
+          git add supervisor-state.json reports/ 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "nothing to commit"
+            exit 0
+          fi
+          git commit -m "supervisor pass $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          for attempt in 1 2 3 4 5; do
+            if git pull --rebase origin main && git push origin HEAD:main; then
+              exit 0
+            fi
+            git rebase --abort 2>/dev/null || true
+            sleep $((attempt * 5))
+          done
+          echo "::error::failed to push supervisor state after 5 attempts"
+          exit 1
