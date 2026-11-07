@@ -60,11 +60,18 @@ own $150 kill switch still runs in-process during the day.
    `X-GitHub-Api-Version: 2022-11-28`. Schedule: every 5 minutes,
    6:25am-1:55pm `America/Los_Angeles`, Mon-Fri.
 
+## Verified live 2026-11-07
+
+First run with secrets (run 42413938125): GitHub runs/contents reads with
+the Actions token, positions list, option snapshot pricing (NVDA 195 put
+marked at -$4,907.50 unrealized, consistent with `cost` being per share),
+and the NVDA stock-bars price all worked.
+
 ## Not yet verified live
 
 Written and fixture-tested on 2026-11-07 (a Saturday), with no network path
 to the Webull sandbox from the build environment. The first real run is
-the test of: the GitHub runs/contents calls with the Actions token, the
+the test of: the
 positions shape for an SPXW position (`optionOcc()` maps `SPX` to the
 `SPXW` root), option `cost` per-share semantics in `optionUnrealized()`,
 and the open-orders `order_type` field used to skip resting stops.
