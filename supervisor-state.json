@@ -1,27 +1,20 @@
 {
-  "date": "2026-11-09",
+  "date": "2026-11-10",
   "alerted": {
     "wheel-cushion:195": {
-      "at": "2026-11-09T14:00:22.726Z",
+      "at": "2026-11-10T14:00:21.219Z",
       "level": "warn",
       "title": "NVDA near the short put strike",
-      "detail": "NVDA 186.64 vs the 195 put: $8.36 below the strike, the put is in the money. Assignment would mean 500 shares (~$97,500)."
+      "detail": "NVDA 178.67 vs the 195 put: $16.33 below the strike, the put is in the money. Assignment would mean 500 shares (~$97,500)."
     },
     "wheel-unrealized:-5x NVDA 2026-11-13 195 PUT": {
-      "at": "2026-11-09T14:00:22.726Z",
+      "at": "2026-11-10T14:00:21.219Z",
       "level": "warn",
       "title": "Wheel unrealized loss is large",
-      "detail": "-5x NVDA 2026-11-13 195 PUT is -$9033 unrealized (alert at -$1500)."
-    },
-    "run-failed:42672383491": {
-      "at": "2026-11-09T18:25:14.363Z",
-      "level": "critical",
-      "title": "NVDA wheel (webull-options-agent): run failure",
-      "detail": "A run that started 1:15 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
-      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/42672383491"
+      "detail": "-5x NVDA 2026-11-13 195 PUT is -$9345 unrealized (alert at -$1500)."
     }
   },
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-09T22:53:41.191Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-10T14:00:21.219Z"
 }
