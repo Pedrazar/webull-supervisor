@@ -12,9 +12,15 @@
       "level": "warn",
       "title": "Wheel unrealized loss is large",
       "detail": "-5x NVDA 2026-11-13 195 PUT is -$9345 unrealized (alert at -$1500)."
+    },
+    "source:wheel": {
+      "at": "2026-11-10T16:35:16.572Z",
+      "level": "warn",
+      "title": "NVDA wheel (webull-options-agent): status unknown",
+      "detail": "Couldn't read GitHub for this agent: Error: GitHub file Pedrazar/webull-options-agent/wheel-trades.jsonl: 502 <!DOCTYPE html>\r\n<!--\r\n\r\nHello future GitHubber! I bet you're here to remove those nasty inline styles,\r\nDRY up these templates"
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-10T16:30:20.218Z"
+  "lastRun": "2026-11-10T16:35:16.572Z"
 }
