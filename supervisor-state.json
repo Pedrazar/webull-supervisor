@@ -18,9 +18,21 @@
       "level": "warn",
       "title": "NVDA wheel (webull-options-agent): status unknown",
       "detail": "Couldn't read GitHub for this agent: Error: GitHub file Pedrazar/webull-options-agent/wheel-trades.jsonl: 502 <!DOCTYPE html>\r\n<!--\r\n\r\nHello future GitHubber! I bet you're here to remove those nasty inline styles,\r\nDRY up these templates"
+    },
+    "limit:spx-0dte": {
+      "at": "2026-11-10T17:40:16.998Z",
+      "level": "critical",
+      "title": "SPX 0DTE calls hit its daily limit",
+      "detail": "Today -$1230 (realized -$1230, open $0) vs limit -$1000. Phase 2 would pause new entries for it now."
+    },
+    "limit:combined": {
+      "at": "2026-11-10T17:40:16.998Z",
+      "level": "critical",
+      "title": "Paper account hit the combined daily limit",
+      "detail": "All agents today: -$1401 vs limit -$1350. Phase 2 would pause new entries for every paper agent now."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-10T17:35:15.052Z"
+  "lastRun": "2026-11-10T17:40:16.998Z"
 }
