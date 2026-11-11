@@ -12,9 +12,23 @@
       "level": "warn",
       "title": "Wheel unrealized loss is large",
       "detail": "-5x NVDA 2026-11-13 195 PUT is -$9870 unrealized (alert at -$1500)."
+    },
+    "run-failed:43097896710": {
+      "at": "2026-11-11T20:57:02.192Z",
+      "level": "critical",
+      "title": "NVDA wheel (webull-options-agent): run startup_failure",
+      "detail": "A run that started 3:45 PM ET ended \"startup_failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/43097896710"
+    },
+    "run-failed:43096429289": {
+      "at": "2026-11-11T20:57:02.192Z",
+      "level": "critical",
+      "title": "NVDA wheel (webull-options-agent): run startup_failure",
+      "detail": "A run that started 3:30 PM ET ended \"startup_failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/43096429289"
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-11T20:15:16.300Z"
+  "lastRun": "2026-11-11T20:57:02.192Z"
 }
