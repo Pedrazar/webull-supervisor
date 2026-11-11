@@ -14,9 +14,7 @@
       "detail": "-5x NVDA 2026-11-13 195 PUT is -$9870 unrealized (alert at -$1500)."
     }
   },
-  "orderFirstSeen": {
-    "6af4a5ee6605760000054e82": "2026-11-11T17:30:21.140Z"
-  },
+  "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-11T17:35:14.304Z"
+  "lastRun": "2026-11-11T17:40:16.324Z"
 }
