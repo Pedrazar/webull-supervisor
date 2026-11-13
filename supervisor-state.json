@@ -12,9 +12,21 @@
       "level": "warn",
       "title": "Wheel unrealized loss is large",
       "detail": "-5x NVDA 2026-11-13 195 PUT is -$12183 unrealized (alert at -$1500)."
+    },
+    "limit:spx-0dte": {
+      "at": "2026-11-13T18:05:13.516Z",
+      "level": "critical",
+      "title": "SPX 0DTE calls hit its daily limit",
+      "detail": "Today -$1450 (realized -$1450, open $0) vs limit -$1000. Phase 2 would pause new entries for it now."
+    },
+    "limit:combined": {
+      "at": "2026-11-13T18:05:13.516Z",
+      "level": "critical",
+      "title": "Paper account hit the combined daily limit",
+      "detail": "All agents today: -$1488 vs limit -$1350. Phase 2 would pause new entries for every paper agent now."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-13T18:00:29.073Z"
+  "lastRun": "2026-11-13T18:05:13.516Z"
 }
