@@ -1,20 +1,20 @@
 {
-  "date": "2026-11-12",
+  "date": "2026-11-13",
   "alerted": {
     "wheel-cushion:195": {
-      "at": "2026-11-12T14:00:22.633Z",
+      "at": "2026-11-13T14:00:22.995Z",
       "level": "warn",
       "title": "NVDA near the short put strike",
-      "detail": "NVDA 173.73 vs the 195 put: $21.27 below the strike, the put is in the money. Assignment would mean 500 shares (~$97,500)."
+      "detail": "NVDA 166.19 vs the 195 put: $28.81 below the strike, the put is in the money. Assignment would mean 500 shares (~$97,500)."
     },
     "wheel-unrealized:-5x NVDA 2026-11-13 195 PUT": {
-      "at": "2026-11-12T14:00:22.633Z",
+      "at": "2026-11-13T14:00:22.995Z",
       "level": "warn",
       "title": "Wheel unrealized loss is large",
-      "detail": "-5x NVDA 2026-11-13 195 PUT is -$18945 unrealized (alert at -$1500)."
+      "detail": "-5x NVDA 2026-11-13 195 PUT is -$12183 unrealized (alert at -$1500)."
     }
   },
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-13T01:41:57.820Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-13T14:00:22.995Z"
 }
