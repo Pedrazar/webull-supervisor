@@ -24,9 +24,15 @@
       "level": "critical",
       "title": "Paper account hit the combined daily limit",
       "detail": "All agents today: -$1488 vs limit -$1350. Phase 2 would pause new entries for every paper agent now."
+    },
+    "0dte-open:-5x NVDA 2026-11-13 195 PUT": {
+      "at": "2026-11-13T20:35:19.801Z",
+      "level": "critical",
+      "title": "0DTE still open near the close",
+      "detail": "-5x NVDA 2026-11-13 195 PUT is still held at 3:35 PM ET. An ITM call left at expiry is exercised into shares. Close it by hand if the agent doesn't in the next few minutes."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-13T20:30:18.965Z"
+  "lastRun": "2026-11-13T20:35:19.801Z"
 }
