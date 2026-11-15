@@ -9,6 +9,7 @@ import { World } from "./gather";
 import { riskRows, describePosition, ownerOf, optionUnrealized } from "./checks";
 import { eventsOn, eventsBetween, mondayOf, summarize, round2 } from "./logs";
 import { todayNyDate } from "./marketHours";
+import { Control, isPaused } from "./control";
 
 const usd = (n: number) => `${n < 0 ? "-" : n > 0 ? "+" : ""}$${Math.abs(n).toFixed(2)}`;
 
@@ -17,7 +18,7 @@ export interface Report {
   headline: string;
 }
 
-export function buildReport(world: World, state: SupervisorState): Report {
+export function buildReport(world: World, state: SupervisorState, control?: Control): Report {
   const { today } = world;
   const rows = riskRows(world);
   const monday = mondayOf(today);
@@ -63,6 +64,21 @@ export function buildReport(world: World, state: SupervisorState): Report {
   }
   lines.push("");
 
+  if (control) {
+    const paused = AGENTS.filter((a) => isPaused(control, a.id, today));
+    lines.push("## Pause switch");
+    lines.push("");
+    if (paused.length === 0) {
+      lines.push("All agents allowed to open new positions.");
+    } else {
+      for (const a of paused) {
+        const e = control.agents[a.id];
+        lines.push(`- **${a.name}**: paused${e.date ? " for today" : " until resumed"} (${e.by ?? "manual"}): ${e.reason ?? ""}`);
+      }
+    }
+    lines.push("");
+  }
+
   lines.push("## Open positions at the broker");
   lines.push("");
   if (world.positions === null) {
@@ -89,7 +105,7 @@ export function buildReport(world: World, state: SupervisorState): Report {
     }
   }
   lines.push("");
-  lines.push("_Phase 1: the supervisor only reads and alerts. Nothing was paused or traded._");
+  lines.push("_The supervisor never trades. Its only lever is pausing new entries through control.json._");
 
   const headline = `${usd(totalRealized)} today` + (fired.length ? `, ${fired.length} alert${fired.length === 1 ? "" : "s"}` : ", no alerts");
   return { markdown: lines.join("\n") + "\n", headline };

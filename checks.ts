@@ -8,8 +8,6 @@ import {
   AGENTS,
   COMBINED_DAILY_LOSS_LIMIT,
   STALE_ORDER_MIN,
-  WHEEL_CUSHION_ALERT_PCT,
-  WHEEL_UNREALIZED_ALERT_USD,
   ZERO_DTE_DEADLINE,
   AgentId,
 } from "./config";
@@ -123,7 +121,7 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     }
   }
 
-  // Wheel: broker vs. the agent's own state snapshot, cushion, unrealized loss.
+  // Wheel: broker vs. the agent's own state snapshot. (No assignment/cushion alerts: J, 2026-11-15, assignment is part of the strategy.)
   const wheelOpts = positions.filter((p) => ownerOf(p) === "wheel" && p.instrument_type === "OPTION");
   const ws = world.wheelState;
   if (world.positions && ws && marketOpen) {
@@ -132,20 +130,6 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     }
     if (!ws.openOption && wheelOpts.length > 0) {
       f.push({ key: "wheel-mismatch:extra", level: "warn", agent: "wheel", title: "Wheel holds an option it doesn't know about", detail: `Broker shows ${wheelOpts.map(describePosition).join(", ")}, but wheel-state.json has no open option.` });
-    }
-  }
-  for (const p of wheelOpts) {
-    const leg = p.legs?.[0];
-    const strike = leg?.option_exercise_price ? parseFloat(leg.option_exercise_price) : NaN;
-    if (leg?.option_type === "PUT" && parseFloat(p.quantity) < 0 && world.nvdaPrice && Number.isFinite(strike)) {
-      const cushion = world.nvdaPrice - strike;
-      if (cushion < WHEEL_CUSHION_ALERT_PCT * world.nvdaPrice) {
-        f.push({ key: `wheel-cushion:${strike}`, level: "warn", agent: "wheel", title: "NVDA near the short put strike", detail: `NVDA ${world.nvdaPrice.toFixed(2)} vs the ${strike} put: ${cushion < 0 ? `$${(-cushion).toFixed(2)} below the strike, the put is in the money` : `cushion $${cushion.toFixed(2)}`}. Assignment would mean ${Math.abs(parseFloat(p.quantity)) * 100} shares (~$${Math.round(strike * Math.abs(parseFloat(p.quantity)) * 100).toLocaleString("en-US")}).` });
-      }
-    }
-    const u = optionUnrealized(p, world);
-    if (u !== null && u <= -WHEEL_UNREALIZED_ALERT_USD) {
-      f.push({ key: `wheel-unrealized:${describePosition(p)}`, level: "warn", agent: "wheel", title: "Wheel unrealized loss is large", detail: `${describePosition(p)} is ${usd(u)} unrealized (alert at -$${WHEEL_UNREALIZED_ALERT_USD}).` });
     }
   }
 
@@ -175,11 +159,11 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     const total = (r.realized ?? 0) + (r.agent === "wheel" ? 0 : r.unrealized);
     combined += total;
     if (r.limit !== null && total <= -r.limit) {
-      f.push({ key: `limit:${r.agent}`, level: "critical", agent: r.agent, title: `${cfg.name} hit its daily limit`, detail: `Today ${usd(total)} (realized ${usd(r.realized ?? 0)}, open ${usd(r.unrealized)}) vs limit -$${r.limit}. Phase 2 would pause new entries for it now.` });
+      f.push({ key: `limit:${r.agent}`, level: "critical", agent: r.agent, title: `${cfg.name} hit its daily limit`, detail: `Today ${usd(total)} (realized ${usd(r.realized ?? 0)}, open ${usd(r.unrealized)}) vs limit -$${r.limit}. New entries for it are paused for the rest of today.` });
     }
   }
   if (combined <= -COMBINED_DAILY_LOSS_LIMIT) {
-    f.push({ key: "limit:combined", level: "critical", title: "Paper account hit the combined daily limit", detail: `All agents today: ${usd(combined)} vs limit -$${COMBINED_DAILY_LOSS_LIMIT}. Phase 2 would pause new entries for every paper agent now.` });
+    f.push({ key: "limit:combined", level: "critical", title: "Paper account hit the combined daily limit", detail: `All agents today: ${usd(combined)} vs limit -$${COMBINED_DAILY_LOSS_LIMIT}. New entries for every paper agent are paused for the rest of today.` });
   }
 
   return f;

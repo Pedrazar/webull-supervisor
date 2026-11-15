@@ -13,6 +13,7 @@ import { parseLog } from "./logs";
 import { buildReport } from "./report";
 import { newFindings, SupervisorState } from "./alerts";
 import { Position } from "./broker";
+import { Control, autoPause, isPaused, manualPause, manualResume, parseTargets } from "./control";
 import { WorkflowRun } from "./github";
 
 const LOGS: Record<string, string> = {
@@ -63,10 +64,9 @@ const wheelPut: Position = {
 };
 
 let passed = 0;
-function test(name: string, fn: () => void) {
-  fn();
-  passed++;
-  console.log(`ok - ${name}`);
+const queue: Array<[string, () => void | Promise<void>]> = [];
+function test(name: string, fn: () => void | Promise<void>) {
+  queue.push([name, fn]);
 }
 
 const keys = (w: World, seen: Record<string, string> = {}) => runChecks(w, seen).map((f) => f.key);
@@ -127,11 +127,9 @@ test("SPY open loss plus realized trips its $200 limit", () => {
   assert.ok(keys(w).includes("limit:spy-0dte"));
 });
 
-test("wheel cushion under 3% and wheel/broker mismatch", () => {
-  const near = world(et("2026-11-09", "11:00"), { positions: [wheelPut], nvdaPrice: 199 });
-  assert.ok(keys(near).includes("wheel-cushion:195"));
-  const far = world(et("2026-11-09", "11:00"), { positions: [wheelPut], nvdaPrice: 215 });
-  assert.ok(!keys(far).includes("wheel-cushion:195"));
+test("no wheel assignment alerts (J, Nov 15), but wheel/broker mismatch still flagged", () => {
+  const itm = world(et("2026-11-09", "11:00"), { positions: [wheelPut], nvdaPrice: 180, snapshots: [{ symbol: "NVDA261113P00195000", bid: "15", ask: "15.2" }] });
+  assert.ok(!keys(itm).some((k) => k.startsWith("wheel-cushion") || k.startsWith("wheel-unrealized")));
   const missing = world(et("2026-11-09", "11:00"), { positions: [] });
   assert.ok(keys(missing).includes("wheel-mismatch:missing"));
 });
@@ -168,4 +166,52 @@ test("report renders with real Nov 6 numbers", () => {
   console.log(`   headline: ${r.headline}`);
 });
 
-console.log(`\n${passed} tests passed`);
+test("control: auto-pause for today, manual resume wins, manual pause until resumed", () => {
+  const c: Control = { updated: "", agents: { "spx-0dte": { mode: "run" } } };
+  assert.equal(autoPause(c, "spx-0dte", "2026-11-17", "SPX hit its daily limit"), true);
+  assert.equal(isPaused(c, "spx-0dte", "2026-11-17"), true);
+  assert.equal(isPaused(c, "spx-0dte", "2026-11-18"), false, "an automatic pause expires with the day");
+  assert.equal(autoPause(c, "spx-0dte", "2026-11-17", "again"), false, "idempotent");
+  manualResume(c, ["spx-0dte"], "2026-11-17");
+  assert.equal(isPaused(c, "spx-0dte", "2026-11-17"), false);
+  assert.equal(autoPause(c, "spx-0dte", "2026-11-17", "still breached"), false, "J's resume holds for the rest of the day");
+  assert.equal(autoPause(c, "spx-0dte", "2026-11-18", "new day"), true, "but not the next day");
+  manualPause(c, parseTargets("all"), "vacation");
+  assert.equal(isPaused(c, "wheel", "2026-12-01"), true, "manual pause has no end date");
+  assert.throws(() => parseTargets("spx"), /unknown agent/);
+});
+
+test("agent snippet: reads control.json, fails open, keeps last mode on error", async () => {
+  const realFetch = globalThis.fetch;
+  const today = new Intl.DateTimeFormat("en-CA", { timeZone: "America/New_York", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
+  let mode: "ok" | "fail" = "fail";
+  globalThis.fetch = (async () => {
+    if (mode === "fail") throw new Error("network down");
+    return new Response(JSON.stringify({ agents: { "spx-0dte": { mode: "paused", reason: "limit", date: today } } }), { status: 200 });
+  }) as typeof fetch;
+  try {
+    const snip = await import("./agent-snippet/supervisorControl");
+    assert.deepEqual(await snip.supervisorPause("spx-0dte"), { paused: false, source: "default" }, "unreachable on first read = not paused");
+    mode = "ok";
+    const p = await snip.supervisorPause("spx-0dte");
+    assert.equal(p.paused, true);
+    assert.equal(p.source, "control");
+    mode = "fail";
+    const later = await snip.supervisorPause("spx-0dte");
+    assert.equal(later.paused, true, "a failed read never unpauses");
+  } finally {
+    globalThis.fetch = realFetch;
+  }
+});
+
+(async () => {
+  for (const [name, fn] of queue) {
+    await fn();
+    passed++;
+    console.log(`ok - ${name}`);
+  }
+  console.log(`\n${passed} tests passed`);
+})().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});

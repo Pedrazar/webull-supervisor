@@ -87,12 +87,6 @@ export const AGENTS: AgentConfig[] = [
 /** Combined daily cap across the paper account, realized + open 0DTE marked to market. */
 export const COMBINED_DAILY_LOSS_LIMIT = 1350;
 
-/** Unrealized loss on the wheel's open position that triggers an alert. */
-export const WHEEL_UNREALIZED_ALERT_USD = 1500;
-
-/** Wheel: alert when NVDA is within this fraction above the short put strike. */
-export const WHEEL_CUSHION_ALERT_PCT = 0.03;
-
 /** Any 0DTE option still held at or after this NY time is an emergency. */
 export const ZERO_DTE_DEADLINE = "15:35";
 

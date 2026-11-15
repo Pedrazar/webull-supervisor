@@ -9,8 +9,9 @@ name: Supervisor
 # firing hours late for these repos). The schedule below is only a sparse
 # backup so a dead cron-job.org entry still gets noticed.
 #
-# Phase 1 is READ-ONLY: it never places, cancels or changes an order and
-# never touches the agents' repos.
+# It never places, cancels or changes an order and never touches the
+# agents' repos. Its only lever (phase 2) is control.json in THIS repo,
+# which each agent reads before opening a new position.
 on:
   workflow_dispatch:
     inputs:
@@ -18,6 +19,18 @@ on:
         description: "Write the daily report now, whatever the time"
         type: boolean
         default: false
+      pause:
+        description: "Pause new entries until resumed: agent ids (webull-agent, wheel, spx-0dte, spy-0dte), comma-separated, or all"
+        type: string
+        default: ""
+      resume:
+        description: "Allow new entries again: agent ids, comma-separated, or all"
+        type: string
+        default: ""
+      reason:
+        description: "Why (shown in the report)"
+        type: string
+        default: ""
   schedule:
     - cron: "*/30 13-22 * * 1-5"
 
@@ -26,7 +39,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
-  contents: write # commit supervisor-state.json and reports/
+  contents: write # commit supervisor-state.json, control.json and reports/
   actions: read # read the agents' workflow runs
 
 jobs:
@@ -50,14 +63,19 @@ jobs:
           WEBULL_SANDBOX_ACCOUNT_ID: ${{ secrets.WEBULL_SANDBOX_ACCOUNT_ID }}
           NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: npx tsx main.ts ${{ inputs.report && '--report' || '' }}
+          IN_REPORT: ${{ inputs.report && '--report' || '' }}
+          IN_PAUSE: ${{ inputs.pause }}
+          IN_RESUME: ${{ inputs.resume }}
+          IN_REASON: ${{ inputs.reason }}
+        # Inputs go through env vars, never pasted into the script text.
+        run: npx tsx main.ts $IN_REPORT "--pause=$IN_PAUSE" "--resume=$IN_RESUME" "--reason=$IN_REASON"
 
       - name: Commit state + report
         if: always()
         run: |
           git config user.name "webull-supervisor"
           git config user.email "actions@users.noreply.github.com"
-          git add supervisor-state.json reports/ 2>/dev/null || true
+          git add supervisor-state.json control.json reports/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "nothing to commit"
             exit 0
