@@ -24,6 +24,18 @@ export interface ControlEntry {
 export interface Control {
   updated: string;
   agents: Record<string, ControlEntry>;
+  /** Phase 3 off switch: false = never auto-close 0DTE options. Missing = on. */
+  autoClose0dte?: boolean;
+  autoCloseNote?: string;
+}
+
+export function autoCloseEnabled(c: Control): boolean {
+  return c.autoClose0dte !== false;
+}
+
+export function setAutoClose(c: Control, on: boolean, note?: string): void {
+  c.autoClose0dte = on;
+  c.autoCloseNote = note;
 }
 
 export const CONTROL_FILE = "control.json";

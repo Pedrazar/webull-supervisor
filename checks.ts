@@ -1,7 +1,7 @@
 /**
  * Health and risk checks. Pure: World in, Finding[] out (plus the order
- * first-seen map, which needs memory across runs). Phase 1 only alerts;
- * a limit breach says what WOULD be paused, nothing is paused.
+ * first-seen map, which needs memory across runs). main.ts turns limit
+ * findings into pauses and runs the 0DTE auto-close.
  */
 
 import {
@@ -9,6 +9,7 @@ import {
   COMBINED_DAILY_LOSS_LIMIT,
   STALE_ORDER_MIN,
   ZERO_DTE_DEADLINE,
+  AUTO_CLOSE_ALERT_AFTER_MIN,
   AgentId,
 } from "./config";
 import { Finding } from "./alerts";
@@ -116,8 +117,12 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     if (!owner) {
       f.push({ key: `unowned:${desc}`, level: "warn", title: "Position no agent claims", detail: `${desc} is on the paper account but doesn't match any agent's symbols.` });
     }
-    if (isZeroDte(p, today) && nowMin >= hhmm(ZERO_DTE_DEADLINE) && nowMin < closeMin) {
-      f.push({ key: `0dte-open:${desc}`, level: "critical", agent: owner ?? undefined, title: "0DTE still open near the close", detail: `${desc} is still held at ${clock(now.toISOString())} ET. An ITM call left at expiry is exercised into shares. Close it by hand if the agent doesn't in the next few minutes.` });
+    // Owned 0DTE with an auto-close time: alert only once the auto-close should
+    // have finished (it failed, or J switched it off). Otherwise 3:35pm.
+    const autoBefore = AGENTS.find((a) => a.id === owner)?.autoCloseBeforeCloseMin;
+    const alertAt = autoBefore ? closeMin - autoBefore + AUTO_CLOSE_ALERT_AFTER_MIN : hhmm(ZERO_DTE_DEADLINE);
+    if (isZeroDte(p, today) && nowMin >= alertAt && nowMin < closeMin) {
+      f.push({ key: `0dte-open:${desc}`, level: "critical", agent: owner ?? undefined, title: "0DTE still open near the close", detail: `${desc} is still held at ${clock(now.toISOString())} ET${autoBefore ? " and the supervisor's auto-close didn't close it" : ""}. An ITM SPY call left at expiry is exercised into shares. Close it by hand now.` });
     }
   }
 
@@ -151,7 +156,7 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     for (const id of Object.keys(orderFirstSeen)) if (!seenNow.has(id)) delete orderFirstSeen[id];
   }
 
-  // --- limits (phase 1: alert only) -----------------------------------------
+  // --- limits (a breach auto-pauses new entries, see main.ts) ---------------
   const rows = riskRows(world);
   let combined = 0;
   for (const r of rows) {

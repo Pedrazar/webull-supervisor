@@ -13,7 +13,9 @@ import { parseLog } from "./logs";
 import { buildReport } from "./report";
 import { newFindings, SupervisorState } from "./alerts";
 import { Position } from "./broker";
-import { Control, autoPause, isPaused, manualPause, manualResume, parseTargets } from "./control";
+import { Control, autoPause, isPaused, manualPause, manualResume, parseTargets, autoCloseEnabled, setAutoClose } from "./control";
+import { dueForAutoClose, closeLimit, autoCloseAll } from "./autoClose";
+import { assertSandbox } from "./orders";
 import { WorkflowRun } from "./github";
 
 const LOGS: Record<string, string> = {
@@ -109,15 +111,102 @@ test("wheel ticker gap is flagged during market hours only", () => {
   assert.ok(!keys(fresh).some((k) => k.startsWith("gap:wheel")));
 });
 
-test("0DTE still open at 3:40pm ET is critical, and priced into the limit", () => {
-  const spy: Position = { symbol: "SPY", instrument_type: "OPTION", quantity: "1", cost_price: "2.10", legs: [{ symbol: "SPY", option_type: "CALL", option_expire_date: "2026-11-09", option_exercise_price: "767", cost: "2.10" }] };
-  const w = world(et("2026-11-09", "15:40"), { positions: [spy, wheelPut], snapshots: [{ symbol: "SPY261109C00767000", bid: "0.80", ask: "0.90" }] });
-  const k = keys(w);
-  assert.ok(k.some((x) => x.startsWith("0dte-open:")));
+const spy0: Position = { symbol: "SPY", instrument_type: "OPTION", quantity: "1", cost_price: "2.10", legs: [{ symbol: "SPY", option_type: "CALL", option_expire_date: "2026-11-09", option_exercise_price: "767", cost: "2.10" }] };
+const spx0: Position = { symbol: "SPXW", instrument_type: "OPTION", quantity: "1", legs: [{ symbol: "SPXW", option_type: "CALL", option_expire_date: "2026-11-09", option_exercise_price: "6800", cost: "9.00" }] };
+
+test("0DTE still open: priced into the limit, critical only after its auto-close window", () => {
+  const snaps = [{ symbol: "SPY261109C00767000", bid: "0.80", ask: "0.90" }];
+  const w = world(et("2026-11-09", "15:40"), { positions: [spy0, wheelPut], snapshots: snaps });
+  assert.ok(!keys(w).some((x) => x.startsWith("0dte-open:")), "3:40pm is SPY's auto-close time, not yet an alert");
   const row = riskRows(w).find((r) => r.agent === "spy-0dte")!;
   assert.equal(row.unrealized, -125); // (0.85 - 2.10) * 1 * 100
-  const early = world(et("2026-11-09", "15:00"), { positions: [spy, wheelPut], snapshots: [] });
-  assert.ok(!keys(early).some((x) => x.startsWith("0dte-open:")));
+  const late = world(et("2026-11-09", "15:45"), { positions: [spy0, wheelPut], snapshots: snaps });
+  assert.ok(keys(late).some((x) => x.startsWith("0dte-open:")), "still open 5 min after auto-close: critical");
+  const spxAt = (t: string) => keys(world(et("2026-11-09", t), { positions: [spx0, wheelPut] })).some((x) => x.startsWith("0dte-open:"));
+  assert.ok(!spxAt("15:50") && spxAt("15:55"), "SPX alerts at 3:55pm, after its 3:50pm auto-close");
+});
+
+test("auto-close: SPY due at 3:40pm, SPX at 3:50pm, never shorts/stock/wheel/after the close", () => {
+  const stock: Position = { symbol: "SOFI", instrument_type: "EQUITY", quantity: "100" };
+  const shortSpy: Position = { ...spy0, quantity: "-1" };
+  const all = [spy0, spx0, wheelPut, stock, shortSpy];
+  const due = (t: string) => dueForAutoClose(all, et("2026-11-09", t)).map((p) => p.symbol);
+  assert.deepEqual(due("15:39"), []);
+  assert.deepEqual(due("15:40"), ["SPY"]);
+  assert.deepEqual(due("15:50"), ["SPY", "SPXW"]);
+  assert.deepEqual(due("16:00"), [], "market closed");
+  const tomorrow: Position = { ...spy0, legs: [{ ...spy0.legs![0], option_expire_date: "2026-11-10" }] };
+  assert.deepEqual(dueForAutoClose([tomorrow], et("2026-11-09", "15:45")), [], "only options expiring today");
+  const halfDay: Position = { ...spy0, legs: [{ ...spy0.legs![0], option_expire_date: "2026-11-27" }] };
+  assert.equal(dueForAutoClose([halfDay], et("2026-11-27", "12:39")).length, 0);
+  assert.equal(dueForAutoClose([halfDay], et("2026-11-27", "12:40")).length, 1, "half day (1pm close): due at 12:40pm");
+});
+
+test("auto-close pricing: escalates off the bid and snaps to each root's tick", () => {
+  assert.equal(closeLimit("SPY", 1.0, 1), 0.97);
+  assert.equal(closeLimit("SPY", 1.0, 3), 0.88);
+  assert.equal(closeLimit("SPY", 1.0, 9), 0.5, "capped at 50% off");
+  assert.equal(closeLimit("SPXW", 2.0, 1), 1.9, "SPXW under $3 ticks $0.05, rounded down");
+  assert.equal(closeLimit("SPXW", 10.0, 1), 9.7);
+  assert.equal(closeLimit("SPY", 0, 1), 0.01, "no bid: one tick");
+  assert.equal(closeLimit("SPXW", 0, 1), 0.05);
+});
+
+test("orders refuse anything but the sandbox host", () => {
+  assert.doesNotThrow(() => assertSandbox("https://api.sandbox.webull.com"));
+  assert.throws(() => assertSandbox("https://api.webull.com"), /not the Webull sandbox/);
+  assert.throws(() => assertSandbox("https://sandbox.webull.com.evil.io"), /not the Webull sandbox/);
+  assert.throws(() => assertSandbox(undefined), /not the Webull sandbox/);
+});
+
+test("auto-close end to end against a fake broker: one SELL_TO_CLOSE, then position gone", async () => {
+  const { WebullClient } = await import("./webullClient");
+  const proto = WebullClient.prototype as unknown as Record<string, unknown>;
+  const realGet = proto.get, realPost = proto.post;
+  const env = { ...process.env };
+  Object.assign(process.env, { WEBULL_BASE_URL: "https://api.sandbox.webull.com", WEBULL_APP_KEY: "k", WEBULL_APP_SECRET: "s", WEBULL_SANDBOX_ACCOUNT_ID: "acct" });
+  let held = true;
+  const placed: Array<Record<string, unknown>> = [];
+  proto.get = async (path: string) => {
+    if (path.includes("positions")) return held ? [spy0] : [];
+    if (path.includes("snapshots")) return [{ symbol: "SPY261109C00767000", bid: "1.00", ask: "1.10" }];
+    if (path.includes("order/detail")) return { orders: [{ status: "FILLED", filled_quantity: "1", filled_price: "0.97" }] };
+    throw new Error("unexpected GET " + path);
+  };
+  proto.post = async (path: string, body: { new_orders?: Array<Record<string, unknown>> }) => {
+    assert.ok(path.endsWith("/option/order/place"), path);
+    placed.push(body.new_orders![0]);
+    held = false;
+    return {};
+  };
+  try {
+    const res = await autoCloseAll([spy0], et("2026-11-09", "15:40"), () => et("2026-11-09", "15:41"));
+    assert.equal(placed.length, 1);
+    const o = placed[0] as { side: string; position_intent: string; order_type: string; limit_price: string; legs: Array<{ symbol: string }> };
+    assert.equal(o.side, "SELL");
+    assert.equal(o.position_intent, "SELL_TO_CLOSE");
+    assert.equal(o.order_type, "LIMIT");
+    assert.equal(o.limit_price, "0.97");
+    assert.equal(o.legs[0].symbol, "SPY", "leg symbol is the underlying, not the OCC string");
+    assert.equal(res[0].ok, true);
+    assert.equal(res[0].sold, 1);
+    assert.equal(res[0].avgPrice, 0.97);
+    // Production host: refuses before any call.
+    process.env.WEBULL_BASE_URL = "https://api.webull.com";
+    await assert.rejects(() => autoCloseAll([spy0], et("2026-11-09", "15:40")), /not the Webull sandbox/);
+    assert.equal(placed.length, 1);
+  } finally {
+    proto.get = realGet;
+    proto.post = realPost;
+    process.env = env;
+  }
+});
+
+test("auto-close off switch defaults on and can be turned off", () => {
+  const c: Control = { updated: "", agents: {} };
+  assert.equal(autoCloseEnabled(c), true);
+  setAutoClose(c, false, "testing");
+  assert.equal(autoCloseEnabled(c), false);
 });
 
 test("SPY open loss plus realized trips its $200 limit", () => {

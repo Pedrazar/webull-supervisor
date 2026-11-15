@@ -1,7 +1,6 @@
 /**
- * READ-ONLY Webull wrappers. Deliberately contains no order placement,
- * cancel or replace call, so phase 1 of the supervisor is structurally
- * incapable of trading. Paths, versions and response shapes are copied
+ * READ-ONLY Webull wrappers: no order call here. The supervisor's only
+ * order code is orders.ts (phase 3 sell-to-close, sandbox only). Paths, versions and response shapes are copied
  * from the agents' own live-verified optionsClient.ts / main.ts.
  */
 

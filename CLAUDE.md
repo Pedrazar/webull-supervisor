@@ -7,17 +7,31 @@ loss limits, pushes alerts to J's phone through ntfy, and writes one
 combined daily report. Design doc:
 https://claude.ai/artifact/KmozfEpzmnQmT15VsfLNdn
 
-## Phase 1 (this code): read-only
+## What it may do (phases 1-3)
 
-- `broker.ts` contains **no order call at all** (no place, cancel or
-  replace), so this process cannot trade. It reads positions, open orders,
-  option snapshots and the NVDA price, using the same endpoints, versions
-  and field names the agents already verified live.
-- It never writes to an agent's repo. It reads their workflow runs and
-  trade logs through the GitHub API.
-- A limit breach only alerts ("phase 2 would pause ..."). Pausing comes in
-  phase 2 via `control.json`; the 3:40pm 0DTE flatten in phase 3.
-- The live SPY account is out of scope for now (J, 2026-11-07).
+- **Phase 1, read-only monitor.** Reads positions, open orders, option
+  snapshots and the NVDA price (`broker.ts`, no order calls), and the
+  agents' workflow runs and trade logs through the GitHub API. It never
+  writes to an agent's repo.
+- **Phase 2, pause switch (2026-11-15).** `control.json` in this repo. Each
+  agent reads it (`agent-snippet/supervisorControl.ts`, copied into each
+  agent) before opening a NEW position; exits are never blocked, and an
+  unreadable file fails open. A limit breach pauses that agent (or all four,
+  for the combined cap) for the rest of the NY day. J pauses/resumes by hand
+  with the workflow's `pause` / `resume` inputs; a manual resume beats a
+  same-day auto-pause.
+- **Phase 3, 0DTE auto-close, paper only (J, 2026-11-15).** A long 0DTE
+  option an agent still holds after its own EOD exit is sold:
+  SPY at close-20 min (3:40pm; agent exits 3:30), SPX at close-10 min
+  (3:50pm; agent exits 3:45). `orders.ts` is the ONLY order code: LIMIT
+  SELL_TO_CLOSE plus cancelling its own unfilled order, and it refuses any
+  `WEBULL_BASE_URL` that isn't `*.sandbox.webull.com`. Never add opening
+  orders, stock orders, or production credentials. Off switch: workflow
+  input `auto_close=off` (stored as `"autoClose0dte": false` in
+  control.json); the "still open" alert then fires 5 min after the
+  auto-close time.
+- The live SPY account is out of scope (J, 2026-11-07); the live SPY
+  workflow never reads control.json.
 
 ## Limits (J, 2026-11-07)
 
@@ -39,8 +53,12 @@ own $150 kill switch still runs in-process during the day.
 
 ## Files
 
-- `main.ts`: one pass. `--dry-run` prints findings without pushing or
-  saving; `--report` writes the report now.
+- `main.ts`: one pass. `--dry-run` prints findings without pushing,
+  saving or trading; `--report` writes the report now; `--pause=`,
+  `--resume=`, `--auto-close=on|off`, `--reason=`.
+- `control.ts` / `control.json`: pause switch and auto-close switch.
+- `autoClose.ts` (which positions are due, pricing, retry loop) and
+  `orders.ts` (sandbox-only sell-to-close).
 - `config.ts`: the four agents, schedules, limits, thresholds.
 - `gather.ts`: collects GitHub + broker data into one `World` object; an
   unreachable source is recorded as an error and reported as "unknown".
@@ -75,3 +93,9 @@ the test of: the
 positions shape for an SPXW position (`optionOcc()` maps `SPX` to the
 `SPXW` root), option `cost` per-share semantics in `optionUnrealized()`,
 and the open-orders `order_type` field used to skip resting stops.
+
+Phase 3 (written 2026-11-15, a Sunday) has only been run against a fake
+broker in `test.ts`. Its first live use will be the first day an agent
+still holds a 0DTE call at its auto-close time. The order body is the same
+one the agents' own exits use (leg `symbol` = `SPY` / `SPXW`), so the open
+question is only the supervisor's own run of it.
