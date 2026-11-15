@@ -8,8 +8,10 @@
     "check": "tsx main.ts",
     "dry-run": "tsx main.ts --dry-run",
     "report": "tsx main.ts --report",
-    "test": "tsx test.ts",
-    "typecheck": "tsc --noEmit"
+    "test": "tsx test.ts && tsx analystTest.ts",
+    "typecheck": "tsc --noEmit",
+    "analyst": "tsx analyst.ts",
+    "analyst:dry-run": "tsx analyst.ts --dry-run"
   },
   "license": "ISC",
   "type": "commonjs",
