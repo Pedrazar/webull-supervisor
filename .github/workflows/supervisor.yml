@@ -70,12 +70,30 @@ jobs:
         # Inputs go through env vars, never pasted into the script text.
         run: npx tsx main.ts $IN_REPORT "--pause=$IN_PAUSE" "--resume=$IN_RESUME" "--reason=$IN_REASON"
 
+      # Financial analyst, SHADOW MODE: a buy/short/sit-out call per agent
+      # around 10:15am ET and a grade after 4:30pm ET; a no-op on every other
+      # pass. It controls nothing (no orders, no control.json), so a failure
+      # here must not hide the supervisor's own result: continue-on-error,
+      # and it pushes its own ntfy alert when it can't make a call.
+      - name: Analyst (shadow)
+        if: always()
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          WEBULL_APP_KEY: ${{ secrets.WEBULL_APP_KEY }}
+          WEBULL_APP_SECRET: ${{ secrets.WEBULL_APP_SECRET }}
+          WEBULL_BASE_URL: ${{ secrets.WEBULL_BASE_URL }}
+          WEBULL_SANDBOX_ACCOUNT_ID: ${{ secrets.WEBULL_SANDBOX_ACCOUNT_ID }}
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx tsx analyst.ts
+
       - name: Commit state + report
         if: always()
         run: |
           git config user.name "webull-supervisor"
           git config user.email "actions@users.noreply.github.com"
-          git add supervisor-state.json control.json reports/ 2>/dev/null || true
+          git add supervisor-state.json control.json reports/ analyst/ 2>/dev/null || true
           if git diff --cached --quiet; then
             echo "nothing to commit"
             exit 0
