@@ -5,20 +5,25 @@
  * push new alerts -> save state, and after REPORT_AFTER ET, write the day's
  * report once.
  *
- * Phase 2: the supervisor still never trades (broker.ts has no order calls).
- * Its only lever is control.json, which the agents read before each NEW
- * entry. Manual control: `--pause=<ids|all>` / `--resume=<ids|all>`
- * (the workflow's "pause" / "resume" inputs).
+ * Phase 2: control.json, which the agents read before each NEW entry.
+ * Manual control: `--pause=<ids|all>` / `--resume=<ids|all>` (the
+ * workflow's "pause" / "resume" inputs).
+ *
+ * Phase 3 (paper only): sells long 0DTE options still held after the
+ * owning agent's own EOD exit (autoClose.ts / orders.ts, the only order
+ * code). Off switch: `--auto-close=off` (workflow input), stored in
+ * control.json as "autoClose0dte": false.
  */
 
 import fs from "fs";
 import "dotenv/config";
 import { gather } from "./gather";
 import { runChecks, hhmm } from "./checks";
-import { loadState, saveState, newFindings, pushFinding, push } from "./alerts";
+import { loadState, saveState, newFindings, pushFinding, push, Finding } from "./alerts";
 import { buildReport } from "./report";
 import { AGENTS, AgentId, REPORT_AFTER } from "./config";
-import { loadControl, saveControl, autoPause, manualPause, manualResume, parseTargets } from "./control";
+import { loadControl, saveControl, autoPause, manualPause, manualResume, parseTargets, autoCloseEnabled, setAutoClose } from "./control";
+import { dueForAutoClose, autoCloseAll } from "./autoClose";
 import { isMarketHoliday, nyMinutesOf, todayNyDate } from "./marketHours";
 
 function arg(name: string): string | undefined {
@@ -34,6 +39,7 @@ async function main() {
   const dryRun = process.argv.includes("--dry-run"); // print, don't push or save
   const pauseArg = arg("pause");
   const resumeArg = arg("resume");
+  const autoCloseArg = arg("auto-close"); // "on" | "off"
 
   // Manual pause/resume first, whatever the day: J may pause over a weekend.
   const control = loadControl();
@@ -51,6 +57,15 @@ async function main() {
     controlChanged = true;
     console.log(`[control] resumed: ${ids.join(", ")}`);
     if (!dryRun) await push("Agents resumed", `New entries allowed again: ${ids.join(", ")}`, { priority: 3, tags: "arrow_forward" });
+  }
+
+  if (autoCloseArg) {
+    if (autoCloseArg !== "on" && autoCloseArg !== "off") throw new Error(`--auto-close must be on or off, got "${autoCloseArg}"`);
+    const on = autoCloseArg === "on";
+    setAutoClose(control, on, arg("reason") ?? `turned ${autoCloseArg} by J`);
+    controlChanged = true;
+    console.log(`[control] 0DTE auto-close ${autoCloseArg}`);
+    if (!dryRun) await push(`0DTE auto-close ${autoCloseArg}`, on ? "The supervisor will sell 0DTE calls still open at 3:40pm (SPY) / 3:50pm (SPX) ET on the paper account." : "The supervisor will NOT close 0DTE calls; it will only alert.", { priority: 3, tags: on ? "white_check_mark" : "no_entry" });
   }
 
   if (isMarketHoliday(now) && !forceReport) {
@@ -83,6 +98,37 @@ async function main() {
   for (const f of fresh) {
     console.log(`  [${f.level}] ${f.title}: ${f.detail}`);
     if (!dryRun) await pushFinding(f);
+  }
+
+  // Phase 3: sell long 0DTE options still held after the agent's own EOD exit
+  // (paper only; orders.ts refuses any non-sandbox host).
+  const due = world.positions ? dueForAutoClose(world.positions, now) : [];
+  if (due.length > 0) {
+    if (!autoCloseEnabled(control)) {
+      console.log(`[auto-close] off in control.json; ${due.length} position(s) left open`);
+    } else if (dryRun) {
+      console.log(`[auto-close] dry run, would close: ${due.map((p) => p.symbol + " " + p.quantity).join(", ")}`);
+    } else {
+      let results;
+      try {
+        results = await autoCloseAll(due, now);
+      } catch (err) {
+        results = [{ agent: "?", position: due.length + " position(s)", occ: "all", contracts: 0, sold: 0, avgPrice: null, ok: false, detail: `Auto-close could not run: ${String(err).slice(0, 200)}. Close by hand.` }];
+      }
+      const closeFindings: Finding[] = [];
+      for (const r of results) {
+        if (r.ok && r.sold === 0) continue; // the agent got there first
+        closeFindings.push(
+          r.ok
+            ? { key: `autoclosed:${r.occ}`, level: "warn", agent: r.agent, title: "Supervisor closed a 0DTE call", detail: `${r.position} (${r.agent}) was still open after its own exit time. ${r.detail}` }
+            : { key: `autoclose-failed:${r.occ}`, level: "critical", agent: r.agent, title: "0DTE auto-close FAILED", detail: `${r.position} (${r.agent}). ${r.detail}` }
+        );
+      }
+      for (const f of newFindings(state, closeFindings, now)) {
+        console.log(`  [${f.level}] ${f.title}: ${f.detail}`);
+        await pushFinding(f);
+      }
+    }
   }
 
   if (forceReport || (!state.reportWritten && nyMinutesOf(now) >= hhmm(REPORT_AFTER))) {

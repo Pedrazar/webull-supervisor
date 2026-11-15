@@ -9,7 +9,7 @@ import { World } from "./gather";
 import { riskRows, describePosition, ownerOf, optionUnrealized } from "./checks";
 import { eventsOn, eventsBetween, mondayOf, summarize, round2 } from "./logs";
 import { todayNyDate } from "./marketHours";
-import { Control, isPaused } from "./control";
+import { Control, isPaused, autoCloseEnabled } from "./control";
 
 const usd = (n: number) => `${n < 0 ? "-" : n > 0 ? "+" : ""}$${Math.abs(n).toFixed(2)}`;
 
@@ -77,6 +77,12 @@ export function buildReport(world: World, state: SupervisorState, control?: Cont
       }
     }
     lines.push("");
+    lines.push(
+      autoCloseEnabled(control)
+        ? "0DTE auto-close is **on**: calls still open at 3:40pm (SPY) / 3:50pm (SPX) ET are sold by the supervisor."
+        : `0DTE auto-close is **off**${control.autoCloseNote ? ` (${control.autoCloseNote})` : ""}: the supervisor only alerts.`
+    );
+    lines.push("");
   }
 
   lines.push("## Open positions at the broker");
@@ -105,7 +111,7 @@ export function buildReport(world: World, state: SupervisorState, control?: Cont
     }
   }
   lines.push("");
-  lines.push("_The supervisor never trades. Its only lever is pausing new entries through control.json._");
+  lines.push("_The supervisor never opens a trade. Its levers are pausing new entries through control.json and, on the paper account, closing 0DTE calls left open after their agent's own exit._");
 
   const headline = `${usd(totalRealized)} today` + (fired.length ? `, ${fired.length} alert${fired.length === 1 ? "" : "s"}` : ", no alerts");
   return { markdown: lines.join("\n") + "\n", headline };

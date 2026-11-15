@@ -9,9 +9,10 @@ name: Supervisor
 # firing hours late for these repos). The schedule below is only a sparse
 # backup so a dead cron-job.org entry still gets noticed.
 #
-# It never places, cancels or changes an order and never touches the
-# agents' repos. Its only lever (phase 2) is control.json in THIS repo,
-# which each agent reads before opening a new position.
+# It never touches the agents' repos. Levers: control.json in THIS repo,
+# which each agent reads before opening a new position (phase 2), and on
+# the PAPER account only, selling a 0DTE call still open after its agent's
+# own end-of-day exit (phase 3; switch off with the auto_close input).
 on:
   workflow_dispatch:
     inputs:
@@ -26,6 +27,11 @@ on:
       resume:
         description: "Allow new entries again: agent ids, comma-separated, or all"
         type: string
+        default: ""
+      auto_close:
+        description: "3:40pm/3:50pm auto-close of open 0DTE calls (paper): leave blank to keep as is"
+        type: choice
+        options: ["", "on", "off"]
         default: ""
       reason:
         description: "Why (shown in the report)"
@@ -45,7 +51,7 @@ permissions:
 jobs:
   pass:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20 # an auto-close pass can retry for ~7 min
     steps:
       - uses: actions/checkout@v4
 
@@ -66,9 +72,10 @@ jobs:
           IN_REPORT: ${{ inputs.report && '--report' || '' }}
           IN_PAUSE: ${{ inputs.pause }}
           IN_RESUME: ${{ inputs.resume }}
+          IN_AUTO_CLOSE: ${{ inputs.auto_close }}
           IN_REASON: ${{ inputs.reason }}
         # Inputs go through env vars, never pasted into the script text.
-        run: npx tsx main.ts $IN_REPORT "--pause=$IN_PAUSE" "--resume=$IN_RESUME" "--reason=$IN_REASON"
+        run: npx tsx main.ts $IN_REPORT "--pause=$IN_PAUSE" "--resume=$IN_RESUME" "--auto-close=$IN_AUTO_CLOSE" "--reason=$IN_REASON"
 
       - name: Commit state + report
         if: always()

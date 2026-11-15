@@ -1,7 +1,7 @@
 /**
  * Everything the supervisor knows about the four agents, in one place.
- * Limits were set by J on 2026-11-07 (see the design doc). Phase 1 only
- * ALERTS on a breach; nothing here pauses an agent yet.
+ * Limits were set by J on 2026-11-07 (see the design doc). A breach pauses
+ * new entries via control.json (phase 2); phase 3 auto-closes 0DTE calls.
  */
 
 export type AgentId = "webull-agent" | "wheel" | "spx-0dte" | "spy-0dte";
@@ -31,6 +31,13 @@ export interface AgentConfig {
   owns: (p: { symbol: string; instrument_type: string }) => boolean;
   /** Note shown in the report about how fresh the log on GitHub is. */
   logNote?: string;
+  /**
+   * Phase 3 auto-close: a long 0DTE option this agent still holds this many
+   * minutes before the close is sold by the supervisor (paper account only).
+   * Set AFTER the agent's own end-of-day exit so the supervisor is a backstop,
+   * not a second exit rule. Unset = never auto-closed.
+   */
+  autoCloseBeforeCloseMin?: number;
 }
 
 const OWNER = "Pedrazar";
@@ -70,6 +77,9 @@ export const AGENTS: AgentConfig[] = [
     dailyLossLimit: 1000,
     schedule: { kind: "session", startBy: "10:25" },
     owns: (p) => p.instrument_type === "OPTION" && (p.symbol === "SPX" || p.symbol === "SPXW"),
+    // Its own EOD exit is 3:45pm; backstop at 3:50pm. SPXW is cash-settled
+    // (no shares), but an unmanaged call still settles at intrinsic or zero.
+    autoCloseBeforeCloseMin: 10,
   },
   {
     id: "spy-0dte",
@@ -81,14 +91,23 @@ export const AGENTS: AgentConfig[] = [
     dailyLossLimit: 200,
     schedule: { kind: "session", startBy: "10:25" },
     owns: (p) => p.instrument_type === "OPTION" && p.symbol === "SPY",
+    // Its own EOD exit is 3:30pm; backstop at 3:40pm. An ITM SPY call left
+    // at expiry is exercised into 100 shares per contract.
+    autoCloseBeforeCloseMin: 20,
   },
 ];
 
 /** Combined daily cap across the paper account, realized + open 0DTE marked to market. */
 export const COMBINED_DAILY_LOSS_LIMIT = 1350;
 
-/** Any 0DTE option still held at or after this NY time is an emergency. */
+/** A 0DTE option no agent owns, still held at or after this NY time, is an emergency. */
 export const ZERO_DTE_DEADLINE = "15:35";
+
+/** Minutes after an agent's auto-close time before "still open" alerts (auto-close failed or off). */
+export const AUTO_CLOSE_ALERT_AFTER_MIN = 5;
+
+/** One supervisor pass stops retrying an auto-close after this long (the next pass picks it up). */
+export const AUTO_CLOSE_BUDGET_MIN = 7;
 
 /** An order seen open across supervisor runs for longer than this gets flagged. */
 export const STALE_ORDER_MIN = 10;
