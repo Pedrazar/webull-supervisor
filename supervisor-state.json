@@ -1,38 +1,29 @@
 {
-  "date": "2026-11-13",
+  "date": "2026-11-16",
   "alerted": {
-    "wheel-cushion:195": {
-      "at": "2026-11-13T14:00:22.995Z",
-      "level": "warn",
-      "title": "NVDA near the short put strike",
-      "detail": "NVDA 166.19 vs the 195 put: $28.81 below the strike, the put is in the money. Assignment would mean 500 shares (~$97,500)."
-    },
-    "wheel-unrealized:-5x NVDA 2026-11-13 195 PUT": {
-      "at": "2026-11-13T14:00:22.995Z",
-      "level": "warn",
-      "title": "Wheel unrealized loss is large",
-      "detail": "-5x NVDA 2026-11-13 195 PUT is -$12183 unrealized (alert at -$1500)."
-    },
-    "limit:spx-0dte": {
-      "at": "2026-11-13T18:05:13.516Z",
+    "run-failed:43894322068": {
+      "at": "2026-11-16T15:20:18.146Z",
       "level": "critical",
-      "title": "SPX 0DTE calls hit its daily limit",
-      "detail": "Today -$1450 (realized -$1450, open $0) vs limit -$1000. Phase 2 would pause new entries for it now."
+      "title": "NVDA wheel (webull-options-agent): run failure",
+      "detail": "A run that started 10:15 AM ET ended \"failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/43894322068"
     },
-    "limit:combined": {
-      "at": "2026-11-13T18:05:13.516Z",
+    "run-failed:43891751008": {
+      "at": "2026-11-16T15:20:18.146Z",
       "level": "critical",
-      "title": "Paper account hit the combined daily limit",
-      "detail": "All agents today: -$1488 vs limit -$1350. Phase 2 would pause new entries for every paper agent now."
+      "title": "NVDA wheel (webull-options-agent): run failure",
+      "detail": "A run that started 10:00 AM ET ended \"failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/43891751008"
     },
-    "0dte-open:-5x NVDA 2026-11-13 195 PUT": {
-      "at": "2026-11-13T20:35:19.801Z",
+    "run-failed:43889038018": {
+      "at": "2026-11-16T15:20:18.146Z",
       "level": "critical",
-      "title": "0DTE still open near the close",
-      "detail": "-5x NVDA 2026-11-13 195 PUT is still held at 3:35 PM ET. An ITM call left at expiry is exercised into shares. Close it by hand if the agent doesn't in the next few minutes."
+      "title": "NVDA wheel (webull-options-agent): run failure",
+      "detail": "A run that started 9:45 AM ET ended \"failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/43889038018"
     }
   },
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-13T21:55:15.071Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-16T15:20:18.146Z"
 }
