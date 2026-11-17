@@ -64,6 +64,14 @@ own $150 kill switch still runs in-process during the day.
   unreachable source is recorded as an error and reported as "unknown".
 - `checks.ts`: pure checks over `World`. `report.ts`: the daily report.
 - `alerts.ts`: ntfy push + per-day de-duplication in `supervisor-state.json`.
+  Failed runs alert once per agent per day (key `run-failed:<agent>`), not
+  once per run: on 2026-11-17 the wheel failed every 15 min and pushed 26
+  critical alerts. The daily report still counts every failure.
+- Positions: read the option leg with `optionLeg()`, never `legs[0]`. Since
+  2026-11-16 the wheel's 500 assigned shares and 5 covered calls come back
+  as ONE position with the stock leg first; `legs[0]` showed it as
+  "5x NVDA undefined undefined undefined" and left it unpriced. A
+  multi-leg position's top-level quantity/cost are never used for pricing.
 - `test.ts`: fixture tests against the agents' real logs (`npm test`).
 
 ## Setup (once)

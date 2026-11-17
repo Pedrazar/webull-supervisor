@@ -8,7 +8,7 @@
 import { AGENTS, AgentConfig } from "./config";
 import { listRuns, getFile, WorkflowRun } from "./github";
 import { parseLog, LogEvent } from "./logs";
-import { makeClient, getPositions, getOpenOrders, getOptionSnapshots, getStockPrice, occSymbol, Position, OpenOrder, OptionSnapshot } from "./broker";
+import { makeClient, getPositions, getOpenOrders, getOptionSnapshots, getStockPrice, occSymbol, Position, PositionLeg, OpenOrder, OptionSnapshot } from "./broker";
 import { todayNyDate } from "./marketHours";
 
 export interface AgentData {
@@ -73,7 +73,7 @@ export async function gather(now = new Date()): Promise<World> {
     const { client, accountId } = makeClient();
     positions = await getPositions(client, accountId);
     openOrders = await getOpenOrders(client, accountId);
-    const occ = positions.filter((p) => p.instrument_type === "OPTION").map(optionOcc).filter((s): s is string => !!s);
+    const occ = positions.map(optionOcc).filter((s): s is string => !!s);
     snapshots = await getOptionSnapshots(client, occ).catch(() => []);
     nvdaPrice = await getStockPrice(client, "NVDA").catch(() => null);
   } catch (e) {
@@ -83,9 +83,16 @@ export async function gather(now = new Date()): Promise<World> {
   return { now, today, agents, positions, openOrders, snapshots, nvdaPrice, wheelState, brokerError };
 }
 
-/** OCC symbol of an option position, rebuilt from legs[0] (the broker never returns it). */
+/** The option leg of a position: the first leg carrying option fields. Usually legs[0],
+ * but a stock + covered-call position (the wheel since 2026-11-16) puts the STOCK leg first,
+ * and reading legs[0] there showed it as "5x NVDA undefined undefined undefined". */
+export function optionLeg(p: Position): PositionLeg | null {
+  return (p.legs ?? []).find((l) => !!l.option_type && !!l.option_expire_date && !!l.option_exercise_price) ?? null;
+}
+
+/** OCC symbol of an option position, rebuilt from its option leg (the broker never returns it). */
 export function optionOcc(p: Position): string | null {
-  const leg = p.legs?.[0];
+  const leg = optionLeg(p);
   if (!leg?.option_expire_date || !leg.option_type || !leg.option_exercise_price) return null;
   // Daily SPX contracts trade under the SPXW root; the positions shape for them is unverified,
   // so map either spelling to SPXW (the agent never trades the AM-settled SPX root).
