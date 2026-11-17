@@ -91,9 +91,21 @@
       "title": "NVDA wheel (webull-options-agent): run failure",
       "detail": "A run that started 12:30 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
       "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44137677224"
+    },
+    "limit:spx-0dte": {
+      "at": "2026-11-17T17:40:16.071Z",
+      "level": "critical",
+      "title": "SPX 0DTE calls hit its daily limit",
+      "detail": "Today -$1400 (realized -$1400, open $0) vs limit -$1000. New entries for it are paused for the rest of today."
+    },
+    "limit:combined": {
+      "at": "2026-11-17T17:40:16.071Z",
+      "level": "critical",
+      "title": "Paper account hit the combined daily limit",
+      "detail": "All agents today: -$1481 vs limit -$1350. New entries for every paper agent are paused for the rest of today."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-17T17:35:15.201Z"
+  "lastRun": "2026-11-17T17:40:16.071Z"
 }
