@@ -179,9 +179,16 @@
       "title": "NVDA wheel (webull-options-agent): run failure",
       "detail": "A run that started 3:00 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
       "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44164616441"
+    },
+    "run-failed:44167311517": {
+      "at": "2026-11-17T20:20:18.152Z",
+      "level": "critical",
+      "title": "NVDA wheel (webull-options-agent): run failure",
+      "detail": "A run that started 3:15 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44167311517"
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-17T20:15:18.233Z"
+  "lastRun": "2026-11-17T20:20:18.152Z"
 }
