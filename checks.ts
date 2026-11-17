@@ -13,7 +13,7 @@ import {
   AgentId,
 } from "./config";
 import { Finding } from "./alerts";
-import { World, optionOcc } from "./gather";
+import { World, optionOcc, optionLeg } from "./gather";
 import { eventsOn, summarize, round2 } from "./logs";
 import { isMarketHoliday, isMarketOpenNow, nyMinutesOf, todayNyDate, marketCloseMinutes } from "./marketHours";
 import { midOf, Position } from "./broker";
@@ -30,9 +30,14 @@ export function optionUnrealized(p: Position, world: World): number | null {
   const occ = optionOcc(p);
   const snap = world.snapshots.find((s) => s.symbol === occ);
   const mid = midOf(snap);
-  const qty = parseFloat(p.quantity);
-  const costStr = p.legs?.[0]?.cost ?? p.cost_price;
-  const cost = costStr ? parseFloat(costStr) : NaN;
+  const leg = optionLeg(p);
+  const multiLeg = (p.legs?.length ?? 0) > 1;
+  // A multi-leg position's top-level quantity/cost_price describe the whole combo
+  // (e.g. 500 shares + 5 short calls, blended cost), so only the leg's own fields count there.
+  const qtyStr = (leg?.quantity as string | undefined) ?? (multiLeg ? undefined : p.quantity);
+  const qty = qtyStr !== undefined ? parseFloat(String(qtyStr)) : NaN;
+  const costStr = leg?.cost ?? (multiLeg ? undefined : p.cost_price);
+  const cost = costStr ? Math.abs(parseFloat(costStr)) : NaN;
   if (mid === null || !Number.isFinite(qty) || !Number.isFinite(cost)) return null;
   return round2((mid - cost) * qty * 100);
 }
@@ -42,7 +47,7 @@ export function ownerOf(p: Position): AgentId | null {
 }
 
 export function isZeroDte(p: Position, today: string): boolean {
-  return p.instrument_type === "OPTION" && p.legs?.[0]?.option_expire_date === today;
+  return optionLeg(p)?.option_expire_date === today;
 }
 
 export interface RiskRow {
@@ -57,7 +62,7 @@ export function riskRows(world: World): RiskRow[] {
     const realized = a.events ? summarize(eventsOn(a.events, world.today)).realized : null;
     let unrealized = 0;
     for (const p of world.positions ?? []) {
-      if (ownerOf(p) !== a.cfg.id || p.instrument_type !== "OPTION") continue;
+      if (ownerOf(p) !== a.cfg.id || !optionLeg(p)) continue;
       const u = optionUnrealized(p, world);
       if (u !== null) unrealized += u;
     }
@@ -88,10 +93,13 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
     if (!a.runs) continue;
     const todays = a.runs.filter((r) => todayNyDate(new Date(r.created_at)) === today);
 
-    for (const r of todays) {
-      if (r.status === "completed" && r.conclusion && !["success", "skipped", "neutral"].includes(r.conclusion)) {
-        f.push({ key: `run-failed:${r.id}`, level: "critical", agent: a.cfg.id, title: `${a.cfg.name}: run ${r.conclusion}`, detail: `A run that started ${clock(r.created_at)} ET ended "${r.conclusion}". Check whether a position or today's log was left behind.`, url: r.html_url });
-      }
+    // One alert per agent per day, keyed by agent rather than run id: on 2026-11-17 the wheel
+    // failed every 15 min and pushed 26 identical critical alerts. The first failure alerts;
+    // the daily report still lists the total.
+    const failedRuns = todays.filter((r) => r.status === "completed" && r.conclusion && !["success", "skipped", "neutral"].includes(r.conclusion));
+    if (failedRuns.length > 0) {
+      const r = failedRuns[failedRuns.length - 1]; // runs come newest first, so this is the first failure today
+      f.push({ key: `run-failed:${a.cfg.id}`, level: "critical", agent: a.cfg.id, title: `${a.cfg.name}: run ${r.conclusion}`, detail: `A run that started ${clock(r.created_at)} ET ended "${r.conclusion}". Check whether a position or today's log was left behind. Further failures today won't alert again; the daily report counts them.`, url: r.html_url });
     }
 
     if (!tradingDay) continue;
@@ -127,7 +135,7 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
   }
 
   // Wheel: broker vs. the agent's own state snapshot. (No assignment/cushion alerts: J, 2026-11-15, assignment is part of the strategy.)
-  const wheelOpts = positions.filter((p) => ownerOf(p) === "wheel" && p.instrument_type === "OPTION");
+  const wheelOpts = positions.filter((p) => ownerOf(p) === "wheel" && !!optionLeg(p));
   const ws = world.wheelState;
   if (world.positions && ws && marketOpen) {
     if (ws.openOption && wheelOpts.length === 0) {
@@ -175,8 +183,19 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
 }
 
 export function describePosition(p: Position): string {
-  const leg = p.legs?.[0];
-  if (p.instrument_type === "OPTION" && leg) {
+  const legs = p.legs ?? [];
+  if (legs.length > 1) {
+    // e.g. the wheel's stock + covered call: "500 NVDA + -5x NVDA 2026-12-11 215 CALL"
+    return legs
+      .map((l) =>
+        l.option_type
+          ? `${l.quantity ?? "?"}x ${p.symbol} ${l.option_expire_date} ${l.option_exercise_price} ${l.option_type}`
+          : `${l.quantity ?? "?"} ${p.symbol}`
+      )
+      .join(" + ");
+  }
+  const leg = optionLeg(p);
+  if (leg) {
     return `${p.quantity}x ${p.symbol} ${leg.option_expire_date} ${leg.option_exercise_price} ${leg.option_type}`;
   }
   return `${p.quantity} ${p.symbol}`;

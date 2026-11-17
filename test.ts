@@ -8,7 +8,7 @@ import assert from "assert";
 import fs from "fs";
 import { AGENTS } from "./config";
 import { World, AgentData } from "./gather";
-import { runChecks, riskRows } from "./checks";
+import { runChecks, riskRows, describePosition, optionUnrealized } from "./checks";
 import { parseLog } from "./logs";
 import { buildReport } from "./report";
 import { newFindings, SupervisorState } from "./alerts";
@@ -95,13 +95,39 @@ test("session agent that never started is critical after its start-by time", () 
   assert.ok(!keys(early).includes("no-start:spy-0dte"), "not before 10:25 ET");
 });
 
-test("failed run alerts once per run id", () => {
+test("failed runs alert once per agent per day, not once per run", () => {
   const w = world(et("2026-11-06", "12:00"), { runs: { "spx-0dte": [run(99, "2026-11-06T14:20:00Z", "failure")] }, positions: [wheelPut] });
   const state: SupervisorState = { date: "2026-11-06", alerted: {}, orderFirstSeen: {}, reportWritten: false };
-  const first = newFindings(state, runChecks(w, {}), w.now).filter((f) => f.key === "run-failed:99");
-  const second = newFindings(state, runChecks(w, {}), w.now).filter((f) => f.key === "run-failed:99");
+  const first = newFindings(state, runChecks(w, {}), w.now).filter((f) => f.key === "run-failed:spx-0dte");
+  const second = newFindings(state, runChecks(w, {}), w.now).filter((f) => f.key === "run-failed:spx-0dte");
   assert.equal(first.length, 1);
   assert.equal(second.length, 0, "deduped on the next pass");
+  // The wheel failing every 15 min (2026-11-17: 26 alerts) now pushes one alert.
+  const wheelRuns = [run(103, "2026-11-06T15:15:00Z", "failure"), run(102, "2026-11-06T15:00:00Z", "failure"), run(101, "2026-11-06T14:45:00Z", "failure")];
+  const ww = world(et("2026-11-06", "12:00"), { runs: { wheel: wheelRuns }, positions: [wheelPut] });
+  const wheelKeys = keys(ww).filter((k) => k.startsWith("run-failed:"));
+  assert.deepEqual(wheelKeys, ["run-failed:wheel"]);
+  assert.ok(runChecks(ww, {}).find((f) => f.key === "run-failed:wheel")!.url!.endsWith("/101"), "links the first failure");
+});
+
+test("wheel stock + covered call combo is described and marked from its option leg", () => {
+  const combo: Position = {
+    symbol: "NVDA",
+    instrument_type: "OPTION",
+    quantity: "5",
+    cost_price: "193.28",
+    legs: [
+      { symbol: "NVDA", instrument_type: "EQUITY", quantity: "500", cost: "193.84" },
+      { symbol: "NVDA", instrument_type: "OPTION", quantity: "-5", cost: "0.56", option_type: "CALL", option_expire_date: "2026-12-11", option_exercise_price: "215" },
+    ],
+  };
+  assert.equal(describePosition(combo), "500 NVDA + -5x NVDA 2026-12-11 215 CALL");
+  const w = world(et("2026-11-17", "12:00"), { positions: [combo], snapshots: [{ symbol: "NVDA261211C00215000", bid: "0.20", ask: "0.30" }] });
+  assert.equal(optionUnrealized(combo, w), 155, "short 5 calls sold at 0.56, now 0.25 mid = +$155");
+  assert.ok(!keys(w).some((k) => k.startsWith("0dte-open")), "a Dec 11 call is not 0DTE");
+  // Without a leg quantity the combo's top-level quantity/cost are NOT used: unpriced, not wrong.
+  const noLegQty: Position = { ...combo, legs: [combo.legs![0], { ...combo.legs![1], quantity: undefined }] };
+  assert.equal(optionUnrealized(noLegQty, w), null);
 });
 
 test("wheel ticker gap is flagged during market hours only", () => {
