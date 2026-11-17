@@ -131,9 +131,22 @@
       "title": "NVDA wheel (webull-options-agent): run failure",
       "detail": "A run that started 1:30 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
       "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44148531244"
+    },
+    "run-failed:44151208274": {
+      "at": "2026-11-17T18:50:16.816Z",
+      "level": "critical",
+      "title": "NVDA wheel (webull-options-agent): run failure",
+      "detail": "A run that started 1:45 PM ET ended \"failure\". Check whether a position or today's log was left behind.",
+      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44151208274"
+    },
+    "limit:spy-0dte": {
+      "at": "2026-11-17T18:50:16.816Z",
+      "level": "critical",
+      "title": "SPY 0DTE calls (paper) hit its daily limit",
+      "detail": "Today -$291 (realized -$291, open $0) vs limit -$200. New entries for it are paused for the rest of today."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-17T18:45:18.906Z"
+  "lastRun": "2026-11-17T18:50:16.816Z"
 }
