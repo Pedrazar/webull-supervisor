@@ -19,9 +19,15 @@
       "level": "critical",
       "title": "Paper account hit the combined daily limit",
       "detail": "All agents today: -$1612 vs limit -$1350. New entries for every paper agent are paused for the rest of today."
+    },
+    "limit:spy-0dte": {
+      "at": "2026-11-18T17:55:15.540Z",
+      "level": "critical",
+      "title": "SPY 0DTE calls (paper) hit its daily limit",
+      "detail": "Today -$296 (realized -$296, open $0) vs limit -$200. New entries for it are paused for the rest of today."
     }
   },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-18T17:50:17.344Z"
+  "lastRun": "2026-11-18T17:55:15.540Z"
 }
