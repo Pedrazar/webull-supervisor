@@ -1,28 +1,28 @@
 {
-  "updated": "2026-11-17T17:40:16.071Z",
+  "updated": "2026-11-18T17:40:17.145Z",
   "agents": {
     "webull-agent": {
       "mode": "paused",
       "reason": "Paper account hit the combined daily limit",
-      "date": "2026-11-17",
+      "date": "2026-11-18",
       "by": "supervisor"
     },
     "wheel": {
       "mode": "paused",
       "reason": "Paper account hit the combined daily limit",
-      "date": "2026-11-17",
+      "date": "2026-11-18",
       "by": "supervisor"
     },
     "spx-0dte": {
       "mode": "paused",
       "reason": "SPX 0DTE calls hit its daily limit",
-      "date": "2026-11-17",
+      "date": "2026-11-18",
       "by": "supervisor"
     },
     "spy-0dte": {
       "mode": "paused",
       "reason": "Paper account hit the combined daily limit",
-      "date": "2026-11-17",
+      "date": "2026-11-18",
       "by": "supervisor"
     }
   }
