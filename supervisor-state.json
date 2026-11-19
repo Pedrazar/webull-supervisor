@@ -1,33 +1,7 @@
 {
-  "date": "2026-11-18",
-  "alerted": {
-    "run-failed:wheel": {
-      "at": "2026-11-18T14:35:14.345Z",
-      "level": "critical",
-      "title": "NVDA wheel (webull-options-agent): run failure",
-      "detail": "A run that started 9:30 AM ET ended \"failure\". Check whether a position or today's log was left behind. Further failures today won't alert again; the daily report counts them.",
-      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/44324939845"
-    },
-    "limit:spx-0dte": {
-      "at": "2026-11-18T17:40:17.145Z",
-      "level": "critical",
-      "title": "SPX 0DTE calls hit its daily limit",
-      "detail": "Today -$1540 (realized -$1540, open $0) vs limit -$1000. New entries for it are paused for the rest of today."
-    },
-    "limit:combined": {
-      "at": "2026-11-18T17:40:17.145Z",
-      "level": "critical",
-      "title": "Paper account hit the combined daily limit",
-      "detail": "All agents today: -$1612 vs limit -$1350. New entries for every paper agent are paused for the rest of today."
-    },
-    "limit:spy-0dte": {
-      "at": "2026-11-18T17:55:15.540Z",
-      "level": "critical",
-      "title": "SPY 0DTE calls (paper) hit its daily limit",
-      "detail": "Today -$296 (realized -$296, open $0) vs limit -$200. New entries for it are paused for the rest of today."
-    }
-  },
+  "date": "2026-11-19",
+  "alerted": {},
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-19T02:43:31.403Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-19T14:00:21.678Z"
 }
