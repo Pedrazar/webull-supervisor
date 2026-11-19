@@ -130,6 +130,15 @@ test("wheel stock + covered call combo is described and marked from its option l
   assert.equal(optionUnrealized(noLegQty, w), null);
 });
 
+test("REAL 2026-11-18 COVERED_STOCK position: described and marked", () => {
+  const real = JSON.parse(`{"currency":"USD","quantity":"5","cost":"96640.00","legs":[{"symbol":"NVDA","cost":"193.84","instrument_type":"EQUITY","last_price":"157.72","unrealized_profit_loss":"-18060.00"},{"symbol":"NVDA","cost":"0.56","instrument_type":"OPTION","last_price":"0.35","unrealized_profit_loss":"105.00","option_type":"CALL","option_expire_date":"2026-12-11","option_exercise_price":"215","option_contract_multiplier":"100","option_contract_deliverable":"100"}],"symbol":"NVDA","option_strategy":"COVERED_STOCK","instrument_type":"OPTION","cost_price":"193.28"}`) as Position;
+  assert.equal(describePosition(real), "500 NVDA + -5x NVDA 2026-12-11 215 CALL");
+  const priced = world(et("2026-11-18", "10:00"), { positions: [real], snapshots: [{ symbol: "NVDA261211C00215000", bid: "0.30", ask: "0.40" }] });
+  assert.equal(optionUnrealized(real, priced), 105, "short 5 calls from 0.56 to 0.35 mid = +$105");
+  const unpriced = world(et("2026-11-18", "10:00"), { positions: [real] });
+  assert.equal(optionUnrealized(real, unpriced), 105, "falls back to the leg's own unrealized_profit_loss");
+});
+
 test("wheel ticker gap is flagged during market hours only", () => {
   const stale = world(et("2026-11-06", "13:00"), { runs: { wheel: [run(5, "2026-11-06T16:00:00Z")] }, positions: [wheelPut] }); // 11:00 ET, 2h old
   assert.ok(keys(stale).some((k) => k.startsWith("gap:wheel")));

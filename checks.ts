@@ -34,11 +34,18 @@ export function optionUnrealized(p: Position, world: World): number | null {
   const multiLeg = (p.legs?.length ?? 0) > 1;
   // A multi-leg position's top-level quantity/cost_price describe the whole combo
   // (e.g. 500 shares + 5 short calls, blended cost), so only the leg's own fields count there.
-  const qtyStr = (leg?.quantity as string | undefined) ?? (multiLeg ? undefined : p.quantity);
+  // CONFIRMED LIVE 2026-11-18: a covered call is one COVERED_STOCK position whose legs carry no
+  // quantity; position quantity = covered units, each one short call. The leg also carries the
+  // broker's own unrealized_profit_loss, used as a fallback when there's no snapshot.
+  const coveredStock = String(p.option_strategy ?? "").toUpperCase() === "COVERED_STOCK";
+  const qtyStr = (leg?.quantity as string | undefined) ?? (coveredStock ? String(-Math.abs(parseFloat(p.quantity))) : multiLeg ? undefined : p.quantity);
   const qty = qtyStr !== undefined ? parseFloat(String(qtyStr)) : NaN;
   const costStr = leg?.cost ?? (multiLeg ? undefined : p.cost_price);
   const cost = costStr ? Math.abs(parseFloat(costStr)) : NaN;
-  if (mid === null || !Number.isFinite(qty) || !Number.isFinite(cost)) return null;
+  if (mid === null || !Number.isFinite(qty) || !Number.isFinite(cost)) {
+    const brokerU = leg?.unrealized_profit_loss !== undefined ? parseFloat(String(leg.unrealized_profit_loss)) : NaN;
+    return Number.isFinite(brokerU) ? round2(brokerU) : null;
+  }
   return round2((mid - cost) * qty * 100);
 }
 
@@ -184,6 +191,12 @@ export function runChecks(world: World, orderFirstSeen: Record<string, string>):
 
 export function describePosition(p: Position): string {
   const legs = p.legs ?? [];
+  const cov = optionLeg(p);
+  if (String(p.option_strategy ?? "").toUpperCase() === "COVERED_STOCK" && cov) {
+    const units = Math.abs(parseFloat(p.quantity));
+    const per = parseFloat(String(cov.option_contract_deliverable ?? "100")) || 100;
+    return `${units * per} ${p.symbol} + -${units}x ${p.symbol} ${cov.option_expire_date} ${cov.option_exercise_price} ${cov.option_type}`;
+  }
   if (legs.length > 1) {
     // e.g. the wheel's stock + covered call: "500 NVDA + -5x NVDA 2026-12-11 215 CALL"
     return legs
