@@ -8,7 +8,7 @@
     "check": "tsx main.ts",
     "dry-run": "tsx main.ts --dry-run",
     "report": "tsx main.ts --report",
-    "test": "tsx test.ts && tsx analystTest.ts",
+    "test": "tsx test.ts && tsx analystTest.ts && tsx analystDirectionTest.ts",
     "typecheck": "tsc --noEmit",
     "analyst": "tsx analyst.ts",
     "analyst:dry-run": "tsx analyst.ts --dry-run"
