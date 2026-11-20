@@ -31,4 +31,6 @@ Hold to close: one SPY contract $1 in the money, bought at the ask at the read, 
 | 2026-11-19 | 715.87 | morning | 734.14 | put ✓ / put ✓ | -$349 / +$1529 | 0.5% vs 0.6% | SPY call -$179, SPX call -$1040 |
 | 2026-11-19 | 715.87 | midday | 719.62 | put ✓ / put ✓ | -$358 / +$104 | 0.7% vs 0.6% | SPY call -$200, SPX no entry |
 
+Not graded yet: 2026-11-20.
+
 Reads: [analyst/direction.jsonl](direction.jsonl). Grades: [analyst/direction-scores.jsonl](direction-scores.jsonl). Rules: [analystDirection.ts](../analystDirection.ts).
