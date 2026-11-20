@@ -1,7 +1,14 @@
 {
   "date": "2026-11-20",
-  "alerted": {},
+  "alerted": {
+    "limit:spx-0dte": {
+      "at": "2026-11-20T17:30:18.872Z",
+      "level": "critical",
+      "title": "SPX 0DTE calls hit its daily limit",
+      "detail": "Today -$1070 (realized -$1070, open $0) vs limit -$1000. New entries for it are paused for the rest of today."
+    }
+  },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-20T17:25:14.804Z"
+  "lastRun": "2026-11-20T17:30:18.872Z"
 }
