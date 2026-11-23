@@ -1,5 +1,5 @@
 {
-  "updated": "2026-11-20T19:15:17.640Z",
+  "updated": "2026-11-23T17:35:14.195Z",
   "agents": {
     "webull-agent": {
       "mode": "paused",
@@ -16,7 +16,7 @@
     "spx-0dte": {
       "mode": "paused",
       "reason": "SPX 0DTE calls hit its daily limit",
-      "date": "2026-11-20",
+      "date": "2026-11-23",
       "by": "supervisor"
     },
     "spy-0dte": {
