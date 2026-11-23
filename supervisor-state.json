@@ -1,26 +1,7 @@
 {
-  "date": "2026-11-20",
-  "alerted": {
-    "limit:spx-0dte": {
-      "at": "2026-11-20T17:30:18.872Z",
-      "level": "critical",
-      "title": "SPX 0DTE calls hit its daily limit",
-      "detail": "Today -$1070 (realized -$1070, open $0) vs limit -$1000. New entries for it are paused for the rest of today."
-    },
-    "limit:spy-0dte": {
-      "at": "2026-11-20T19:15:17.640Z",
-      "level": "critical",
-      "title": "SPY 0DTE calls (paper) hit its daily limit",
-      "detail": "Today -$390 (realized -$390, open $0) vs limit -$200. New entries for it are paused for the rest of today."
-    },
-    "limit:combined": {
-      "at": "2026-11-20T19:15:17.640Z",
-      "level": "critical",
-      "title": "Paper account hit the combined daily limit",
-      "detail": "All agents today: -$1460 vs limit -$1350. New entries for every paper agent are paused for the rest of today."
-    }
-  },
+  "date": "2026-11-23",
+  "alerted": {},
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-20T21:55:13.917Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-23T14:00:25.533Z"
 }
