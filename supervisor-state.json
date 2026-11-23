@@ -1,9 +1,7 @@
 {
   "date": "2026-11-23",
   "alerted": {},
-  "orderFirstSeen": {
-    "6b0462b68df40400007d8beb": "2026-11-23T16:00:23.528Z"
-  },
+  "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-23T16:00:23.528Z"
+  "lastRun": "2026-11-23T16:05:15.180Z"
 }
