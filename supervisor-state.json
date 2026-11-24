@@ -1,7 +1,20 @@
 {
   "date": "2026-11-24",
-  "alerted": {},
+  "alerted": {
+    "limit:spx-0dte": {
+      "at": "2026-11-24T17:55:27.729Z",
+      "level": "critical",
+      "title": "SPX 0DTE calls hit its daily limit",
+      "detail": "Today -$1530 (realized -$1530, open $0) vs limit -$1000. New entries for it are paused for the rest of today."
+    },
+    "limit:combined": {
+      "at": "2026-11-24T17:55:27.729Z",
+      "level": "critical",
+      "title": "Paper account hit the combined daily limit",
+      "detail": "All agents today: -$1623 vs limit -$1350. New entries for every paper agent are paused for the rest of today."
+    }
+  },
   "orderFirstSeen": {},
   "reportWritten": false,
-  "lastRun": "2026-11-24T17:50:16.194Z"
+  "lastRun": "2026-11-24T17:55:27.729Z"
 }
