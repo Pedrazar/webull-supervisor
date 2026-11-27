@@ -1,21 +1,7 @@
 {
-  "date": "2026-11-25",
-  "alerted": {
-    "source:broker": {
-      "at": "2026-11-25T19:30:21.491Z",
-      "level": "warn",
-      "title": "Broker status unknown",
-      "detail": "Couldn't read Webull positions/orders: Error: Webull GET /trading/assets/positions/list failed: 503 {\"error_code\":\"SERVICE_NOT_AVAILABLE\"}"
-    },
-    "run-failed:wheel": {
-      "at": "2026-11-25T19:35:14.353Z",
-      "level": "critical",
-      "title": "NVDA wheel (webull-options-agent): run failure",
-      "detail": "A run that started 2:30 PM ET ended \"failure\". Check whether a position or today's log was left behind. Further failures today won't alert again; the daily report counts them.",
-      "url": "https://github.com/Pedrazar/webull-options-agent/actions/runs/45685818218"
-    }
-  },
+  "date": "2026-11-27",
+  "alerted": {},
   "orderFirstSeen": {},
-  "reportWritten": true,
-  "lastRun": "2026-11-26T04:16:24.862Z"
+  "reportWritten": false,
+  "lastRun": "2026-11-27T14:00:31.510Z"
 }
